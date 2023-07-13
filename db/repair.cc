@@ -320,6 +320,7 @@ class Repairer {
       s = builder->Finish();
       if (s.ok()) {
         t.meta.file_size = builder->FileSize();
+        t.meta.num_keys = builder->NumEntries();
       }
     }
     delete builder;
@@ -368,7 +369,7 @@ class Repairer {
     for (size_t i = 0; i < tables_.size(); i++) {
       // TODO(opt): separate out into multiple levels
       const TableInfo& t = tables_[i];
-      edit_.AddFile(0, t.meta.number, t.meta.file_size, t.meta.smallest,
+      edit_.AddFile(0, t.meta.number, t.meta.file_size, t.meta.num_keys, t.meta.smallest,
                     t.meta.largest);
     }
 

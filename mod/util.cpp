@@ -11,7 +11,7 @@ using std::to_string;
 
 namespace adgMod {
 
-    int MOD = 5;
+    int MOD = 9;
     bool string_mode = true;
     uint64_t key_multiple = 1;
     uint32_t file_model_error = 10;

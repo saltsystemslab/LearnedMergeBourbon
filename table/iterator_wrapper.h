@@ -7,6 +7,7 @@
 
 #include "leveldb/iterator.h"
 #include "leveldb/slice.h"
+#include <iostream>
 
 namespace leveldb {
 
@@ -34,7 +35,7 @@ class IteratorWrapper {
   }
 
   // Iterator interface methods
-  bool Valid() const { return valid_; }
+  bool Valid() const { return valid_;}
   Slice key() const {
     assert(Valid());
     return key_;

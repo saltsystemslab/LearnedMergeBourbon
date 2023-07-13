@@ -18,8 +18,20 @@
 #include "leveldb/export.h"
 #include "leveldb/slice.h"
 #include "leveldb/status.h"
+#include <vector>
 
 namespace leveldb {
+
+struct MergerStats {
+    int level;
+    uint64_t num_items;
+    std::vector<uint64_t> num_items_per_list;
+    uint64_t comp_count;
+    uint64_t cdf_abs_error;
+    uint64_t max_abs_error;
+    int NoModelCount;
+    uint64_t num_iterators;
+};
 
 class LEVELDB_EXPORT Iterator {
  public:
@@ -71,6 +83,11 @@ class LEVELDB_EXPORT Iterator {
 
   // If an error has occurred, return it.  Else return an ok status.
   virtual Status status() const = 0;
+  virtual MergerStats get_merger_stats() {
+    // Dummy implementation.
+    MergerStats m;
+    return m;
+  }
 
   // Clients are allowed to register function/arg1/arg2 triples that
   // will be invoked when this iterator is destroyed.

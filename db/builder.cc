@@ -11,13 +11,14 @@
 #include "leveldb/db.h"
 #include "leveldb/env.h"
 #include "leveldb/iterator.h"
-
+#include <iostream>
 namespace leveldb {
 
 Status BuildTable(const std::string& dbname, Env* env, const Options& options,
                   TableCache* table_cache, Iterator* iter, FileMetaData* meta) {
   Status s;
   meta->file_size = 0;
+  meta->num_keys = 0;
   iter->SeekToFirst();
 
   std::string fname = TableFileName(dbname, meta->number);
@@ -30,16 +31,19 @@ Status BuildTable(const std::string& dbname, Env* env, const Options& options,
 
     TableBuilder* builder = new TableBuilder(options, file);
     meta->smallest.DecodeFrom(iter->key());
+    int count=0;
     for (; iter->Valid(); iter->Next()) {
       Slice key = iter->key();
       meta->largest.DecodeFrom(key);
       builder->Add(key, iter->value());
+      count++;
     }
 
     // Finish and check for builder errors
     s = builder->Finish();
     if (s.ok()) {
       meta->file_size = builder->FileSize();
+      meta->num_keys = builder->NumEntries();
       assert(meta->file_size > 0);
     }
     delete builder;

@@ -6,7 +6,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
-
+#include <iostream>
 #include <algorithm>
 #include <atomic>
 #include <set>
@@ -62,6 +62,7 @@ struct DBImpl::CompactionState {
     uint64_t number;
     uint64_t file_size;
     InternalKey smallest, largest;
+    int num_keys;
   };
 
   Output* current_output() { return &outputs[outputs.size() - 1]; }
@@ -556,7 +557,7 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
     if (base != nullptr) {
       level = base->PickLevelForMemTableOutput(min_user_key, max_user_key);
     }
-    edit->AddFile(level, meta.number, meta.file_size, meta.smallest,
+    edit->AddFile(level, meta.number, meta.file_size, meta.num_keys, meta.smallest,
                   meta.largest);
 
     // record stats for newly generated file
@@ -811,7 +812,7 @@ void DBImpl::BackgroundCompaction() {
     assert(c->num_input_files(0) == 1);
     FileMetaData* f = c->input(0, 0);
     c->edit()->DeleteFile(c->level(), f->number);
-    c->edit()->AddFile(c->level() + 1, f->number, f->file_size, f->smallest,
+    c->edit()->AddFile(c->level() + 1, f->number, f->file_size, f->num_keys, f->smallest,
                        f->largest);
     status = versions_->LogAndApply(c->edit(), &mutex_);
 
@@ -974,6 +975,7 @@ Status DBImpl::FinishCompactionOutputFile(CompactionState* compact,
   }
   const uint64_t current_bytes = compact->builder->FileSize();
   compact->current_output()->file_size = current_bytes;
+  compact->current_output()->num_keys = current_entries;
   compact->total_bytes += current_bytes;
   delete compact->builder;
   compact->builder = nullptr;
@@ -1005,6 +1007,7 @@ Status DBImpl::FinishCompactionOutputFile(CompactionState* compact,
   adgMod::Stats* instance = adgMod::Stats::GetInstance();
   meta->number = output->number;
   meta->file_size = output->file_size;
+  meta->num_keys = output->num_keys;
   meta->smallest = output->smallest;
   meta->largest = output->largest;
 
@@ -1039,7 +1042,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact) {
   const int level = compact->compaction->level();
   for (size_t i = 0; i < compact->outputs.size(); i++) {
     const CompactionState::Output& out = compact->outputs[i];
-    compact->compaction->edit()->AddFile(level + 1, out.number, out.file_size,
+    compact->compaction->edit()->AddFile(level + 1, out.number, out.file_size, out.num_keys,
                                          out.smallest, out.largest);
   }
   return versions_->LogAndApply(compact->compaction->edit(), &mutex_);
@@ -1065,7 +1068,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 
   // Release mutex while we're actually doing the compaction work
   mutex_.Unlock();
-
+ // std::cout<<"makeinputiterator"<<std::endl;
   Iterator* input = versions_->MakeInputIterator(compact->compaction);
   input->SeekToFirst();
   Status status;
@@ -1074,7 +1077,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   bool has_current_user_key = false;
   SequenceNumber last_sequence_for_key = kMaxSequenceNumber;
 
-//  vector<string> keys;
+//  vector<string> keys;`
 
   for (; input->Valid() && !shutting_down_.load(std::memory_order_acquire);) {
     // Prioritize immutable compaction work
@@ -1159,6 +1162,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       if (compact->builder->NumEntries() == 0) {
         compact->current_output()->smallest.DecodeFrom(key);
       }
+      
       compact->current_output()->largest.DecodeFrom(key);
       compact->builder->Add(key, input->value());
 
@@ -1174,7 +1178,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 
     input->Next();
   }
-
+input->get_merger_stats();
   if (status.ok() && shutting_down_.load(std::memory_order_acquire)) {
     status = Status::IOError("Deleting DB during compaction");
   }

@@ -14,7 +14,7 @@
 #include "leveldb/table_builder.h"
 #include "util/coding.h"
 #include "util/logging.h"
-
+#include <iostream>
 namespace leveldb {
 
 // Grouping of constants.  We may want to make some of these
@@ -91,6 +91,9 @@ bool ParseInternalKey(const Slice& internal_key, ParsedInternalKey* result);
 
 // Returns the user key portion of an internal key.
 inline Slice ExtractUserKey(const Slice& internal_key) {
+  if(internal_key.size()<8) {
+    std::cout<<"internal_key.size():"<<internal_key.size()<<"key: "<<internal_key.ToString()<<std::endl;
+  }
   assert(internal_key.size() >= 8);
   return Slice(internal_key.data(), internal_key.size() - 8);
 }

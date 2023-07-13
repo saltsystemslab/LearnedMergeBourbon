@@ -14,6 +14,7 @@
 #include <vector>
 #include <cstring>
 #include "timer.h"
+#include <iostream> 
 
 using std::string;
 using std::to_string;
