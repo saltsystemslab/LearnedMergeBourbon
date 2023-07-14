@@ -22,6 +22,7 @@
 #include "util/logging.h"
 #include "mod/stats.h"
 #include "mod/learned_index.h"
+#include "mod/learned_merger.h"
 
 namespace leveldb {
 
@@ -1745,10 +1746,10 @@ int64_t Version::GetLimit(const ReadOptions& options, int &file_count, const Com
   if (adgMod::MOD == 9) {
     //std::vector<int> levels={c->level(), c->level()+1};
     //std::cout<<"level: "<<c->level()<<std::endl;
-        result = NewMergingIterator(&icmp_, list, num);
+        //result = NewMergingIterator(&icmp_, list, num);
 
-    // result = NewShadowedLearnedMergingIterator(&icmp_, list, shadow_list,
-     //                                          allFiles, num, levels, options);
+     result = NewShadowedLearnedMergingIterator(&icmp_, list, shadow_list,
+                                               allFiles, num, levels, options);
     // result = NewLearnedMergingIterator(&icmp_, list, models, num,
     // c->level());
   } else {

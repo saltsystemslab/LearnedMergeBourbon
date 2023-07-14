@@ -208,14 +208,14 @@ int64_t TableCache::GetForCompaction(
 
     // if level model is used or file model is available, go Bourbon path
     if (learned || *file_learned) {
-      //std::cout<<"model present"<<std::endl;
+      std::cout<<"model present"<<std::endl;
       uint64_t limit = LevelReadForCompaction(options,
           comparator, target_key, file_number, file_size, k, arg, handle_result,
           level, meta, lower, upper, learned, version);
       return limit;
       // return Status::OK();
     } else {
-      //std::cout<<"no model"<<std::endl;
+      std::cout<<"no model"<<std::endl;
       return -1;
     }
   }

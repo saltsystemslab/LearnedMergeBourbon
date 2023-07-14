@@ -176,10 +176,10 @@ int main(int argc, char** argv) {
       std::string value;
       status = db->Get(leveldb::ReadOptions(), k, &value);
       c++;
-      if (value == k) {
-        std::cout << "count: " << c << "value: " << value << "key: " << k
-                  << std::endl;
-      }
+      // if (value == k) {
+      //   std::cout << "count: " << c << "value: " << value << "key: " << k
+      //             << std::endl;
+      // }
       if (value != k) {
         std::cout << "failed" << std::endl;
         std::cout << "count: " << c << "value: " << value << "key: " << k
