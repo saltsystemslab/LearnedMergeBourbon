@@ -57,12 +57,6 @@ class TableCache {
              FileMetaData* meta = nullptr, uint64_t lower = 0, uint64_t upper = 0, bool learned = false, Version* version = nullptr,
              adgMod::LearnedIndexData** model = nullptr, bool* file_learned = nullptr);
 
-
-int64_t GetForCompaction(const ReadOptions& options,const Comparator* comparator, const Slice &target_key, uint64_t file_number,
-             uint64_t file_size, const Slice& k, void* arg,
-             void (*handle_result)(void*, const Slice&, const Slice&), int level,
-             FileMetaData* meta = nullptr, uint64_t lower = 0, uint64_t upper = 0, bool learned = false, Version* version = nullptr,
-             adgMod::LearnedIndexData** model = nullptr, bool* file_learned = nullptr);
   // Evict any entry for the specified file number
   void Evict(uint64_t file_number);
 
@@ -74,12 +68,6 @@ int64_t GetForCompaction(const ReadOptions& options,const Comparator* comparator
                  uint64_t file_size, const Slice& k, void* arg,
                  void (*handle_result)(void*, const Slice&, const Slice&), int level,
                  FileMetaData* meta = nullptr, uint64_t lower = 0, uint64_t upper = 0, bool learned = false, Version* version = nullptr);
-
-uint64_t LevelReadForCompaction(const ReadOptions& options, const Comparator* comparator, const Slice &target_key, uint64_t file_number,
-                 uint64_t file_size, const Slice& k, void* arg,
-                 void (*handle_result)(void*, const Slice&, const Slice&), int level,
-                 FileMetaData* meta = nullptr, uint64_t lower = 0, uint64_t upper = 0, bool learned = false, Version* version = nullptr);
-
 
  private:
   Status FindTable(uint64_t file_number, uint64_t file_size, Cache::Handle**);

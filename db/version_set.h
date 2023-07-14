@@ -74,10 +74,7 @@ class Version {
 
   Status Get(const ReadOptions&, const LookupKey& key, std::string* val,
              GetStats* stats);
-
-  int64_t GetLimit(const ReadOptions& options, int& file_count, const Comparator* comparator, const Slice &target_key, const LookupKey& k,
-                    std::string* value, int level, std::vector<FileMetaData*> files);
-                    
+                  
   // Adds "stats" into the current state.  Returns true if a new
   // compaction may need to be triggered, false otherwise.
   // REQUIRES: lock is held
