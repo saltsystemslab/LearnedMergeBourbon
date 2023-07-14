@@ -22,13 +22,19 @@ class MergingIterator : public Iterator {
     for (int i = 0; i < n; i++) {
       children_[i].Set(children[i]);
     }
+    stats_.num_items = 0;
+    stats_.cdf_abs_error = 0;
+    stats_.comp_count = 0;
+    stats_.num_iterators = n_;
   }
 
-  virtual ~MergingIterator() { delete[] children_; }
+  ~MergingIterator() override { delete[] children_; }
 
-  virtual bool Valid() const { return (current_ != nullptr); }
+  bool Valid() const override { 
+    return (current_ != nullptr); 
+  }
 
-  virtual void SeekToFirst() {
+  void SeekToFirst() override {
     for (int i = 0; i < n_; i++) {
       children_[i].SeekToFirst();
     }
@@ -36,7 +42,7 @@ class MergingIterator : public Iterator {
     direction_ = kForward;
   }
 
-  virtual void SeekToLast() {
+  void SeekToLast() override {
     for (int i = 0; i < n_; i++) {
       children_[i].SeekToLast();
     }
@@ -44,7 +50,7 @@ class MergingIterator : public Iterator {
     direction_ = kReverse;
   }
 
-  virtual void Seek(const Slice& target) {
+  void Seek(const Slice& target) override {
     for (int i = 0; i < n_; i++) {
       children_[i].Seek(target);
     }
@@ -52,7 +58,7 @@ class MergingIterator : public Iterator {
     direction_ = kForward;
   }
 
-  virtual void Next() {
+  void Next() override {
     assert(Valid());
 
     // Ensure that all children are positioned after key().
@@ -75,10 +81,11 @@ class MergingIterator : public Iterator {
     }
 
     current_->Next();
+    stats_.num_items++;
     FindSmallest();
   }
 
-  virtual void Prev() {
+  void Prev() override {
     assert(Valid());
 
     // Ensure that all children are positioned before key().
@@ -107,17 +114,17 @@ class MergingIterator : public Iterator {
     FindLargest();
   }
 
-  virtual Slice key() const {
+  Slice key() const override {
     assert(Valid());
     return current_->key();
   }
 
-  virtual Slice value() const {
+  Slice value() const override {
     assert(Valid());
     return current_->value();
   }
 
-  virtual Status status() const {
+  Status status() const override {
     Status status;
     for (int i = 0; i < n_; i++) {
       status = children_[i].status();
@@ -126,6 +133,10 @@ class MergingIterator : public Iterator {
       }
     }
     return status;
+  }
+
+  MergerStats get_merger_stats() override {
+    return stats_;
   }
 
  private:
@@ -143,6 +154,7 @@ class MergingIterator : public Iterator {
   int n_;
   IteratorWrapper* current_;
   Direction direction_;
+  MergerStats stats_;
 };
 
 void MergingIterator::FindSmallest() {
@@ -152,9 +164,11 @@ void MergingIterator::FindSmallest() {
     if (child->Valid()) {
       if (smallest == nullptr) {
         smallest = child;
+        stats_.comp_count--;
       } else if (comparator_->Compare(child->key(), smallest->key()) < 0) {
         smallest = child;
       }
+      stats_.comp_count++;
     }
   }
   current_ = smallest;

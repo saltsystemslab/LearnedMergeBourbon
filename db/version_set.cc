@@ -552,7 +552,7 @@ namespace leveldb {
         return Status::NotFound(Slice());  // Use an empty error message for speed
     }
 
-int64_t Version::GetLimit(const ReadOptions& options, int &file_count, const Comparator* comparator, const Slice &target_key, const LookupKey& k,
+int64_t Version::GetLimit(MergerStats& stats,const ReadOptions& options, int &file_count, const Comparator* comparator, const Slice &target_key, const LookupKey& k,
                     std::string* value, int level, std::vector<FileMetaData*> allFiles) {
  // adgMod::Stats* instance = adgMod::Stats::GetInstance();
   Slice ikey = k.internal_key();
@@ -638,11 +638,9 @@ int64_t Version::GetLimit(const ReadOptions& options, int &file_count, const Com
                 break;
               }
             }
-            //std::cout<<"file_count: "<<file_count<<std::endl;
           } else {
             // the model predicts a region larger than its size -- target key
             // not in this level
-            //std::cout<<"the model predicts a region larger than its size"<<std::endl;
             shortlisted_files = nullptr;
             num_files = 0;
           }
@@ -652,7 +650,6 @@ int64_t Version::GetLimit(const ReadOptions& options, int &file_count, const Com
           // Binary search to find earliest index whose largest key >= ikey.
           uint32_t index = FindFile(vset_->icmp_, allFiles, ikey);
           if (index >= num_files) {
-            //std::cout<<"hey"<<std::endl;
             shortlisted_files = nullptr;
             num_files = 0;
             int64_t limit = 0;
@@ -664,7 +661,6 @@ int64_t Version::GetLimit(const ReadOptions& options, int &file_count, const Com
             tmp2 = shortlisted_files[index];
             if (ucmp->Compare(user_key, tmp2->smallest.user_key()) < 0) {
               // All of "tmp2" is past any data for user_key
-              //std::cout<<"hey1"<<std::endl;
               shortlisted_files = nullptr;
               num_files = 0;
               int64_t limit = 0;
@@ -676,7 +672,6 @@ int64_t Version::GetLimit(const ReadOptions& options, int &file_count, const Com
               file_count = index;
               shortlisted_files = &tmp2;
               num_files = 1;
-             // std::cout<<"file_count 2: "<<file_count<<std::endl;
             }
           }
         }
@@ -732,20 +727,14 @@ int64_t Version::GetLimit(const ReadOptions& options, int &file_count, const Com
         // If level model is not ready, this function will detect and see if
         // file model is available param:learned means if level model is used
         //std::cout<<"smallest iterator file where key is searched in: "<<f->number<<std::endl;
-        limit = vset_->table_cache_->GetForCompaction(options, comparator, target_key, f->number, f->file_size, ikey, &saver, SaveValue, level, f,
+        limit = vset_->table_cache_->GetForCompaction(stats, options, comparator, target_key, f->number, f->file_size, ikey, &saver, SaveValue, level, f,
             position_lower, position_upper, false, this, &model, &file_learned);
         
         if(limit > f->num_keys){
-          //std::cout<<"limit was: "<<limit<<"f->num_keys: "<<f->num_keys<<std::endl;
           limit = f->num_keys-1;
         }
       }
       return limit;
-      //auto temp = instance->PauseTimer(6, true);
-
-      // if (!s.ok()) {
-      //   return s;
-      // }
 
 #ifdef RECORD_LEVEL_INFO
       adgMod::learn_cb_model->AddLookupData(
@@ -1653,13 +1642,11 @@ int64_t Version::GetLimit(const ReadOptions& options, int &file_count, const Com
   int num = 0;
   int shadow_num = 0;
   Iterator** shadow_list = new Iterator*[space];
-  std::vector<std::vector<adgMod::LearnedIndexData*>> level_and_file_models;
 
   if (adgMod::MOD == 9) {
     for (int which = 0; which < 2; which++) {
       if (!c->inputs_[which].empty()) {
         if (c->level() + which == 0) {
-        std::vector<adgMod::LearnedIndexData*> models;
           const std::vector<FileMetaData*>& files = c->inputs_[which];
 
           for (size_t i = 0; i < files.size(); i++) {
@@ -1668,52 +1655,23 @@ int64_t Version::GetLimit(const ReadOptions& options, int &file_count, const Com
             allFiles.push_back(f);
             list[num++] = table_cache_->NewIterator(options, files[i]->number,
                                                     files[i]->file_size);
-            models.push_back(nullptr);  
-            adgMod::LearnedIndexData* learned_this_file =
-                adgMod::file_data->GetModel(files[i]->number);
-            if ((learned_this_file)->Learned()) {
-              models.push_back(learned_this_file);
-            } else {
-              models.push_back(nullptr);
-            }
+  
             shadow_list[shadow_num++] = table_cache_->NewIterator(
                 options, files[i]->number, files[i]->file_size);
             levels.push_back(c->level());
           }
-          level_and_file_models.push_back(models);
-          //allFiles.push_back(f);
-         // allFiles.insert(allFiles.begin()+c->level(), f);
 
         } else {
-            std::vector<adgMod::LearnedIndexData*> models;
             std::vector<FileMetaData*> f;
           // Create concatenating iterator for the files from this level
           list[num++] = NewTwoLevelIterator(
               new Version::LevelFileNumIterator(icmp_, &c->inputs_[which]),
               &GetFileIterator, table_cache_, options);
 
-          adgMod::LearnedIndexData* learned_this_level =
-              current_->learned_index_data_[c->level() + which].get();
-          if (learned_this_level->Learned(current_, adgMod::db->version_count,
-                                          c->level() + which)) {
-            models.push_back(learned_this_level);
-          } else {
-            models.push_back(nullptr);
-          }
-
           const std::vector<FileMetaData*>& files = c->inputs_[which];
           for (size_t i = 0; i < files.size(); i++) {
-            //std::cout<<"number of files in level > 0: "<<files.size()<<std::endl;
             f.push_back(files[i]);
-            adgMod::LearnedIndexData* learned_this_file =
-                adgMod::file_data->GetModel(files[i]->number);
-            if ((learned_this_file)->Learned()) {
-              models.push_back(learned_this_file);
-            } else {
-              models.push_back(nullptr);
-            }
           }
-            level_and_file_models.push_back(models);
             allFiles.push_back(f);
             levels.push_back(c->level() + which);
           shadow_list[shadow_num++] = NewTwoLevelIterator(
@@ -1744,14 +1702,8 @@ int64_t Version::GetLimit(const ReadOptions& options, int &file_count, const Com
   assert(num <= space);
   Iterator* result;
   if (adgMod::MOD == 9) {
-    //std::vector<int> levels={c->level(), c->level()+1};
-    //std::cout<<"level: "<<c->level()<<std::endl;
-        //result = NewMergingIterator(&icmp_, list, num);
-
      result = NewShadowedLearnedMergingIterator(&icmp_, list, shadow_list,
                                                allFiles, num, levels, options);
-    // result = NewLearnedMergingIterator(&icmp_, list, models, num,
-    // c->level());
   } else {
     result = NewMergingIterator(&icmp_, list, num);
   }

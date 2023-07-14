@@ -63,13 +63,13 @@ class TableCache {
   // fill file data (all keys in this file)
   bool FillData(const ReadOptions& options, FileMetaData* meta, adgMod::LearnedIndexData* data);
 
-int64_t GetForCompaction(const ReadOptions& options,const Comparator* comparator, const Slice &target_key, uint64_t file_number,
+int64_t GetForCompaction(MergerStats& stats, const ReadOptions& options,const Comparator* comparator, const Slice &target_key, uint64_t file_number,
              uint64_t file_size, const Slice& k, void* arg,
              void (*handle_result)(void*, const Slice&, const Slice&), int level,
              FileMetaData* meta = nullptr, uint64_t lower = 0, uint64_t upper = 0, bool learned = false, Version* version = nullptr,
              adgMod::LearnedIndexData** model = nullptr, bool* file_learned = nullptr);
 
-uint64_t LevelReadForCompaction(const ReadOptions& options, const Comparator* comparator, const Slice &target_key, uint64_t file_number,
+uint64_t LevelReadForCompaction(MergerStats& stats, const ReadOptions& options, const Comparator* comparator, const Slice &target_key, uint64_t file_number,
                  uint64_t file_size, const Slice& k, void* arg,
                  void (*handle_result)(void*, const Slice&, const Slice&), int level,
                  FileMetaData* meta = nullptr, uint64_t lower = 0, uint64_t upper = 0, bool learned = false, Version* version = nullptr);
@@ -89,6 +89,7 @@ uint64_t LevelReadForCompaction(const ReadOptions& options, const Comparator* co
   const std::string dbname_;
   const Options& options_;
   Cache* cache_;
+  MergerStats stats_;
 };
 
 }  // namespace leveldb

@@ -191,7 +191,7 @@ Status TableCache::Get(const ReadOptions& options, uint64_t file_number,
 }
 
 int64_t TableCache::GetForCompaction(
-    const ReadOptions& options, const Comparator* comparator, const Slice& target_key, uint64_t file_number,
+    MergerStats& stats, const ReadOptions& options, const Comparator* comparator, const Slice& target_key, uint64_t file_number,
     uint64_t file_size, const Slice& k, void* arg,
     void (*handle_result)(void*, const Slice&, const Slice&), int level,
     FileMetaData* meta, uint64_t lower, uint64_t upper, bool learned,
@@ -200,7 +200,6 @@ int64_t TableCache::GetForCompaction(
   adgMod::Stats* instance = adgMod::Stats::GetInstance();
 
   if ((adgMod::MOD == 6 || adgMod::MOD == 7 || adgMod::MOD == 9)) {
-    // std::cout<<"file number"<<file_number<<std::endl;
     //  check if file model is ready
     *model = adgMod::file_data->GetModel(meta->number);
     assert(file_learned != nullptr);
@@ -208,8 +207,7 @@ int64_t TableCache::GetForCompaction(
 
     // if level model is used or file model is available, go Bourbon path
     if (learned || *file_learned) {
-      std::cout<<"model present"<<std::endl;
-      uint64_t limit = LevelReadForCompaction(options,
+      uint64_t limit = LevelReadForCompaction(stats, options,
           comparator, target_key, file_number, file_size, k, arg, handle_result,
           level, meta, lower, upper, learned, version);
       return limit;
@@ -334,19 +332,14 @@ Cache::Handle* TableCache::FindFile(const ReadOptions& options, uint64_t file_nu
 }
 
 uint64_t TableCache::LevelReadForCompaction(
-    const ReadOptions& options, const Comparator* comparator, const Slice& target_key, uint64_t file_number,
+    MergerStats& stats, const ReadOptions& options, const Comparator* comparator, const Slice& target_key, uint64_t file_number,
     uint64_t file_size, const Slice& k, void* arg,
     void (*handle_result)(void*, const Slice&, const Slice&), int level,
     FileMetaData* meta, uint64_t lower, uint64_t upper, bool learned,
     Version* version) {
-//std::cout<<"target key: "<<target_key.ToString()<<std::endl;
-
-  
-
     ParsedInternalKey parsed_key;
     ParseInternalKey(k, &parsed_key);
   adgMod::Stats* instance = adgMod::Stats::GetInstance();
-  // std::cout<<"target key: "<<target_key.ToString()<<"done"<<std::endl;
 
   // Get the file
 #ifdef INTERNAL_TIMER
@@ -462,10 +455,8 @@ uint64_t TableCache::LevelReadForCompaction(
    //std::cout<<"size of left at start: "<<left_at_start.size()<<std::endl;
   int flag = 0;
   int c = comparator->Compare(left_at_start, k);
-  //std::cout<<"size of left at start: "<<left_at_start.size()<<" size of parsed_key.user_key: "<<parsed_key.user_key.size()<<" size of target key: "<<target_key.size()<<std::endl;
-  // int c = tf->table->rep_->options.comparator->Compare(left_at_start, k);
-  if (c > 0) {
-    // std::cout<<"left at start> target"<<std::endl;
+  stats.cdf_abs_error++;
+    if (c > 0) {
     if (left == 0) {
       flag = 1;
     
@@ -473,6 +464,7 @@ uint64_t TableCache::LevelReadForCompaction(
       while (c > 0 && left>0) {
         left--;
         c = comparator->Compare(left_at_start, k);
+        stats.cdf_abs_error++;
         key_ptr1 = DecodeEntry(
             entries.data() + (left - pos_block_lower) * adgMod::entry_size,
             entries.data() + read_size, &shared1, &non_shared1, &value_length1);
@@ -500,87 +492,21 @@ uint64_t TableCache::LevelReadForCompaction(
     Slice mid_key(key_ptr, non_shared);
 
     int comp = comparator->Compare(mid_key, k);
-    // int comp = tf->table->rep_->options.comparator->Compare(mid_key, k);
+    stats.cdf_abs_error++;
     if (comp < 0) {
-      // std::cout<<"mid: "<<mid_key.ToString()<<std::endl;
-      // std::cout<<"target: "<<k.ToString()<<std::endl;
       left = mid;
     } else {
       right = mid - 1;
     }
   }
-  uint32_t shared2, non_shared2, value_length2;
-
-  const char* key_ptr2 = DecodeEntry(
-      entries.data() + (left - pos_block_lower) * adgMod::entry_size,
-      entries.data() + read_size, &shared2, &non_shared2, &value_length2);
-  Slice key;
-  key = Slice(key_ptr2, non_shared2);
-  // std::cout<<"key at left after binary search: "<<key.ToString()<<std::endl;
-  int compare = comparator->Compare(key, k);
-  // if(compare >0) {
-  //   std::cout<<"key at second error correction: "<<key.ToString()<<"target: "<<k.ToString()<<std::endl;
-  // }
-  // //int compare = tf->table->rep_->options.comparator->Compare(key, k);
-  // if(comparator->Compare(key, parsed_key.user_key) > 0) {
-  //     left-=1;
-  //     key_ptr = DecodeEntry(entries.data() + (left - pos_block_lower) *
-  //     adgMod::entry_size,
-  //         entries.data() + read_size, &shared, &non_shared, &value_length);
-  //     // key = Slice(key_ptr, non_shared);
-  //     // std::cout<<"error correction needed"<<std::endl;
-  //     // std::cout<<"left key: "<<key.ToString()<<std::endl;
-  //     // std::cout<<"target key:
-  //     "<<parsed_key.user_key.ToString()<<std::endl;
-  // }
-  // std::cout<<" after error correction: key at left:
-  // "<<key.ToString()<<std::endl; uint32_t shared2, non_shared2, value_length2;
-  // const char* key_ptr2 = DecodeEntry(entries.data() + (left -
-  // pos_block_lower) * adgMod::entry_size,
-  //           entries.data() + read_size, &shared2, &non_shared2,
-  //           &value_length2);
-  // Slice key2(key_ptr2, non_shared2);
-  // if(tf->table->rep_->options.comparator->Compare(key2, k) > 0) {
-  //   // key_ptr2 = DecodeEntry(entries.data() + (left - pos_block_lower) *
-  //   adgMod::entry_size,
-  //   //         entries.data() + read_size, &shared2, &non_shared2,
-  //   &value_length2); std::cout<<"error correction"<<std::endl;
-  //       left=left-1;
-  // }
-
+ 
   uint64_t b_offset;
   if (block_offset > 0) {
-    // limit = (block_offset/adgMod::entry_size )+ left;
     b_offset = (block_offset / 4133) * 125;
-    // b_offset = (block_offset -8)/adgMod::entry_size ;
   } else {
     b_offset = block_offset;
   }
-  // std::cout<<"block offset: "<<block_offset<<std::endl;
-  // std::cout<<"b offset: "<<b_offset<<std::endl;
-  // std::cout<<"left: "<<left<<std::endl;
-
   uint64_t limit = b_offset + left;
-  // std::cout<<"block_offset: "<<block_offset<<std::endl;
-  // std::cout<<"left: "<<left<<std::endl;
-  // std::cout<<"entry_size: "<<adgMod::entry_size<<std::endl;
-  // std::cout<<"limit: "<<limit<<std::endl;
-
-  // decode the target entry to get the key and value (actually value_addr)
-  //  uint32_t shared, non_shared, value_length;
-  //  const char* key_ptr = DecodeEntry(entries.data() + (left -
-  //  pos_block_lower) * adgMod::entry_size,
-  //          entries.data() + read_size, &shared, &non_shared, &value_length);
-  //     assert(key_ptr != nullptr && shared == 0 && "Entry Corruption");
-  // #ifdef INTERNAL_TIMER
-  //     if (!first_search) {
-  //       instance->PauseTimer(3);
-  //     } else {
-  //       instance->PauseTimer(5);
-  //     }
-  // #endif
-  // Slice key(key_ptr, non_shared), value(key_ptr + non_shared, value_length);
-  // handle_result(arg, key, value);
 
   if (block_offset > 0) {
     limit = limit - (block_offset / 4133);

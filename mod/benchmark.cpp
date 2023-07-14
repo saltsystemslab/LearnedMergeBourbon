@@ -93,10 +93,6 @@ int main(int argc, char** argv) {
         << ",";
   stats << "CDF_ABS_ERROR"
         << ",";
-  stats << "MAX_ABS_ERROR"
-        << ",";
-  stats << "MISSING_MODELS"
-        << ",";
   stats << "NUM_ITERATORS"
         << ",";
   stats << "NUM_ITEMS"

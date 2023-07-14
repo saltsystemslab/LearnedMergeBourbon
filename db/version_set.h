@@ -72,7 +72,7 @@ class Version {
   // REQUIRES: This version has been saved (see VersionSet::SaveTo)
   void AddIterators(const ReadOptions&, std::vector<Iterator*>* iters);
 
-  int64_t GetLimit(const ReadOptions& options, int& file_count, const Comparator* comparator, const Slice &target_key, const LookupKey& k,
+  int64_t GetLimit(MergerStats& stats, const ReadOptions& options, int& file_count, const Comparator* comparator, const Slice &target_key, const LookupKey& k,
                     std::string* value, int level, std::vector<FileMetaData*> files);
                     
   Status Get(const ReadOptions&, const LookupKey& key, std::string* val,

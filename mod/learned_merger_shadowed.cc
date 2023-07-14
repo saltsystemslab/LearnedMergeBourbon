@@ -87,8 +87,6 @@ class LearnedMergingWithShadowIterator : public Iterator {
     stats << m.comp_count << ",";
     stats << lm.comp_count << ",";
     stats << lm.cdf_abs_error << ",";
-    stats << lm.max_abs_error << ",";
-    stats << lm.NoModelCount << ", ";
     stats << lm.num_iterators << ",";
     stats << lm.num_items << ",";
     // stats <<" '";

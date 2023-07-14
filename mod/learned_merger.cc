@@ -79,7 +79,6 @@ class LearnedMergingIterator : public Iterator {
     stats_.num_items++;
     smallest_->Next();
     keys_consumed_[smallest_iterator_index_]++;
-    //std::cout<<"keys consumed of iterator index "<<smallest_iterator_index_<<" :"<<keys_consumed_[smallest_iterator_index_]<<std::endl;
     if (HasHitLimit()) {
       FindSmallest();
     }
@@ -144,37 +143,37 @@ bool LearnedMergingIterator::HasHitLimit() {
 }
 void LearnedMergingIterator::FindSmallest() {
   // int flag = 0;
-  // if (smallest_ != nullptr && second_smallest_ != nullptr) {
-  //   flag = 1;
-  //   // if (smallest_->Valid() && second_smallest_->Valid()) {
-  //   //     stats_.comp_count+=1;
-  //   // }
-  //   // if(smallest_->Valid() && second_smallest_->Valid() &&
-  //   // comparator_->Compare(smallest_->key(), second_smallest_->key()) < 0){
-  //   //   smallest_->loadOneAndSetLimit();
-  //   //   return;
-  //   // }
-  //   smallest_ = second_smallest_;
-  //   smallest_iterator_index_ = second_smallest_iterator_index_;
-  //   second_smallest_ = nullptr;
-  //   for (int i = 0; i < n_; i++) {
-  //     if (smallest_ == &children_[i]) {
-  //       continue;
-  //     }
-  //     if (!children_[i].Valid()) {
-  //       continue;
-  //     }
-  //     if (second_smallest_ != nullptr) stats_.comp_count += 1;
-  //     if (second_smallest_ == nullptr ||
-  //         comparator_->Compare(children_[i].key(), second_smallest_->key()) <
-  //             0) {
-  //       second_smallest_ = &children_[i];
-  //       second_smallest_iterator_index_ = i;
-  //     }
-  //   }
-  // }
+  if (smallest_ != nullptr && second_smallest_ != nullptr) {
+    //flag = 1;
+    if (smallest_->Valid() && second_smallest_->Valid()) {
+        stats_.comp_count+=1;
+    }
+    if(smallest_->Valid() && second_smallest_->Valid() &&
+    comparator_->Compare(smallest_->key(), second_smallest_->key()) < 0){
+      current_key_limit_index_ = keys_consumed_[smallest_iterator_index_];
+      return;
+    }
+    smallest_ = second_smallest_;
+    smallest_iterator_index_ = second_smallest_iterator_index_;
+    second_smallest_ = nullptr;
+    for (int i = 0; i < n_; i++) {
+      if (smallest_ == &children_[i]) {
+        continue;
+      }
+      if (!children_[i].Valid()) {
+        continue;
+      }
+      if (second_smallest_ != nullptr) stats_.comp_count += 1;
+      if (second_smallest_ == nullptr ||
+          comparator_->Compare(children_[i].key(), second_smallest_->key()) <
+              0) {
+        second_smallest_ = &children_[i];
+        second_smallest_iterator_index_ = i;
+      }
+    }
+  }
 
-  // else {
+  else {
   IteratorWrapper* smallest = nullptr;
   IteratorWrapper* second_smallest = nullptr;
   for (int i = 0; i < n_; i++) {
@@ -202,33 +201,26 @@ void LearnedMergingIterator::FindSmallest() {
     stats_.comp_count += 2;
   }
 
+if(smallest_ == smallest){
+      current_key_limit_index_ = keys_consumed_[smallest_iterator_index_];
+      return;
+    }
   smallest_ = smallest;
   second_smallest_ = second_smallest;
-
+  }
   if (smallest_ == nullptr) {
     return;
   }
 
   if (second_smallest_ == nullptr) {
-    //std::cout << "sec smallest nullptr" << std::endl;
     size_t smallest_iterator_size = 0;
-    // if (levels_[smallest_iterator_index_] > 0) {
     for (auto i : allFiles_[smallest_iterator_index_]) {
       smallest_iterator_size += i->num_keys;
     }
-    // } else {
-    //   smallest_iterator_size =
-    //       allFiles_[smallest_iterator_index_][0]->num_keys;
-    // }
     current_key_limit_index_ = smallest_iterator_size - 1;
     return;
   }
 
-  //std::cout<<"first key in the smallest iterator: "<<smallest_->key().ToString()<<std::endl;
-  //std::cout<<"all files in the smallest iteartor: "<<std::endl;
-  for (auto i : allFiles_[smallest_iterator_index_]) {
-     // std::cout<<i->number<<" "<<std::endl;
-    }
   ParsedInternalKey parsed;
   ParseInternalKey(second_smallest_->key(), &parsed);
   SequenceNumber snapshot;
@@ -242,23 +234,11 @@ void LearnedMergingIterator::FindSmallest() {
 
   std::string value;
   Version* v = adgMod::db->versions_->current();
-  //  std::cout << "target key: " << second_smallest_->key().ToString()
-  //            << std::endl;
-  // std::cout << "file numbers of smallest iterator: " << std::endl;
-  for (auto file : allFiles_[smallest_iterator_index_]) {
-    //std::cout << file->number << " ";
-  }
-  // std::cout << "\n" << std::endl;
-  // std::cout << "key at smallest iterator" << smallest_->key().ToString()
-  //           << std::endl;
 
-  // std::cout<<"level of smallest iteartor index:
-  // "<<levels_[smallest_iterator_index_]<<std::endl;
   int file_count = 0;
-  auto file_limit = v->GetLimit(options_,
+  auto file_limit = v->GetLimit(stats_, options_,
       file_count, comparator_, second_smallest_->key(), lkey, &value,
       levels_[smallest_iterator_index_], allFiles_[smallest_iterator_index_]);
-  //std::cout << "file limit: " << file_limit << std::endl;
   size_t file_offset = 0;
   if (levels_[smallest_iterator_index_] != 0) {
     for (int file_index = 0; file_index < file_count; file_index++) {
@@ -275,8 +255,6 @@ void LearnedMergingIterator::FindSmallest() {
 
   current_key_limit_index_ = file_offset + file_limit;
   current_key_limit_index_ = std::max(current_key_limit_index_, keys_consumed_[smallest_iterator_index_]);
-  //std::cout<<"keys consumed of smallest: "<<keys_consumed_[smallest_iterator_index_]<<std::endl;
- // std::cout<<"current_key_limit_index_: "<<current_key_limit_index_<<std::endl;
 }
 
 }  // namespace
