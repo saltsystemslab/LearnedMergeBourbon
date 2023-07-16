@@ -12,7 +12,7 @@
 
 // #include "mod/config.h"
 #include "mod/plr.h"
-// #include "mod/ycsb.cc"
+ #include "mod/ycsb.cc"
 
 using namespace std;
 
@@ -58,29 +58,29 @@ void generate_random_keys(vector<std::string>& keys) {
   return;
 }
 
-// void generate_ycsb_keys(const char *ycsb_test_case, vector<std::string>&
-// keys) {
-//   const char *workload_type = FLAGS_ycsb_workload_type;
-//   const char *key_type = FLAGS_ycsb_key_type;
-//   const char *access_pattern = FLAGS_ycsb_access_pattern;
+void generate_ycsb_keys(const char *ycsb_test_case, vector<std::string>&
+keys) {
+  const char *workload_type = FLAGS_ycsb_workload_type;
+  const char *key_type = FLAGS_ycsb_key_type;
+  const char *access_pattern = FLAGS_ycsb_access_pattern;
 
-//   if (strcmp(ycsb_test_case, YCSB_LOAD) == 0) {
-//     std::vector<uint64_t> ycsb_keys_load;
-//     ycsb_keys_load = (ycsb_main(workload_type, key_type, access_pattern))[0];
-//     for (auto key : ycsb_keys_load) {
-//       keys.push_back(generate_key(key));
-//     }
-//     return;
-//   }
-//   else if (strcmp(ycsb_test_case, YCSB_RUN) == 0) {
-//     std::vector<uint64_t> ycsb_keys_run;
-//     ycsb_keys_run = (ycsb_main(workload_type, key_type, access_pattern))[1];
-//     for (auto key : ycsb_keys_run) {
-//       keys.push_back(generate_key(key));
-//     }
-//     return;
-//   }
-// }
+  if (strcmp(ycsb_test_case, YCSB_LOAD) == 0) {
+    std::vector<uint64_t> ycsb_keys_load;
+    ycsb_keys_load = (ycsb_main(workload_type, key_type, access_pattern))[0];
+    for (auto key : ycsb_keys_load) {
+      keys.push_back(generate_key(key));
+    }
+    return;
+  }
+  else if (strcmp(ycsb_test_case, YCSB_RUN) == 0) {
+    std::vector<uint64_t> ycsb_keys_run;
+    ycsb_keys_run = (ycsb_main(workload_type, key_type, access_pattern))[1];
+    for (auto key : ycsb_keys_run) {
+      keys.push_back(generate_key(key));
+    }
+    return;
+  }
+}
 
 int main(int argc, char** argv) {
   std::ofstream stats;
@@ -137,11 +137,11 @@ int main(int argc, char** argv) {
   if (strcmp(FLAGS_benchmark, "random") == 0) {
     generate_random_keys(keys);
   } else if (strcmp(FLAGS_benchmark, YCSB_LOAD) == 0) {
-    abort();
-    // generate_ycsb_keys(YCSB_LOAD, keys);
+    //abort();
+     generate_ycsb_keys(YCSB_LOAD, keys);
   } else if (strcmp(FLAGS_benchmark, YCSB_RUN) == 0) {
-    abort();
-    // generate_ycsb_keys(YCSB_RUN, keys);
+    //abort();
+     generate_ycsb_keys(YCSB_RUN, keys);
   } else {
     std::cout << "Unrecognized benchmark!" << std::endl;
     return 1;

@@ -239,6 +239,7 @@ if(smallest_ == smallest){
   auto file_limit = v->GetLimit(stats_, options_,
       file_count, comparator_, second_smallest_->key(), lkey, &value,
       levels_[smallest_iterator_index_], allFiles_[smallest_iterator_index_]);
+  //std::cout<<"file_limit: "<<file_limit<<std::endl;
   size_t file_offset = 0;
   if (levels_[smallest_iterator_index_] != 0) {
     for (int file_index = 0; file_index < file_count; file_index++) {
@@ -254,7 +255,11 @@ if(smallest_ == smallest){
   }
 
   current_key_limit_index_ = file_offset + file_limit;
+  //std::cout<<"fileoffset: "<<file_offset<<std::endl;
   current_key_limit_index_ = std::max(current_key_limit_index_, keys_consumed_[smallest_iterator_index_]);
+  //std::cout<<"current_key_limit_index_: "<<current_key_limit_index_<<std::endl;
+  //std::cout<<"smallest iteartor index: "<<smallest_iterator_index_<<std::endl;
+  //std::cout<<"keys_consumed_[smallest_iterator_index_]: "<<keys_consumed_[smallest_iterator_index_]<<std::endl;
 }
 
 }  // namespace

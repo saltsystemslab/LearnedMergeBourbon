@@ -207,6 +207,7 @@ int64_t TableCache::GetForCompaction(
 
     // if level model is used or file model is available, go Bourbon path
     if (learned || *file_learned) {
+      std::cout<<"mode present"<<std::endl;
       uint64_t limit = LevelReadForCompaction(stats, options,
           comparator, target_key, file_number, file_size, k, arg, handle_result,
           level, meta, lower, upper, learned, version);
@@ -389,19 +390,23 @@ uint64_t TableCache::LevelReadForCompaction(
   // key to decide which data block the key is in
   uint64_t i = index_lower;
   if (index_lower != index_upper) {
-    Block* index_block = tf->table->rep_->index_block;
-    uint32_t mid_index_entry =
-        DecodeFixed32(index_block->data_ + index_block->restart_offset_ +
-                      index_lower * sizeof(uint32_t));
-    uint32_t shared, non_shared, value_length;
-    const char* key_ptr =
-        DecodeEntry(index_block->data_ + mid_index_entry,
-                    index_block->data_ + index_block->restart_offset_, &shared,
-                    &non_shared, &value_length);
-    assert(key_ptr != nullptr && shared == 0 && "Index Entry Corruption");
-    Slice mid_key(key_ptr, non_shared+8);
-    int comp = comparator->Compare(mid_key, k);
-    i = comp < 0 ? index_upper : index_lower;
+    std::cout<<"overlap"<<std::endl;
+    // Block* index_block = tf->table->rep_->index_block;
+    // uint32_t mid_index_entry =
+    //     DecodeFixed32(index_block->data_ + index_block->restart_offset_ +
+    //                   index_lower * sizeof(uint32_t));
+    // uint32_t shared, non_shared, value_length;
+    // const char* key_ptr =
+    //     DecodeEntry(index_block->data_ + mid_index_entry,
+    //                 index_block->data_ + index_block->restart_offset_, &shared,
+    //                 &non_shared, &value_length);
+    // assert(key_ptr != nullptr && shared == 0 && "Index Entry Corruption");
+    // Slice mid_key(key_ptr, non_shared+8);
+    // int comp = comparator->Compare(mid_key, k);
+    // std::cout<<"mid_key: "<<mid_key.ToString()<<" target: "<<k.ToString()<<std::endl;
+    // i = comp < 0 ? index_upper : index_lower;
+    // std::cout<<"index_lower: "<<index_lower<<" index_upper "<<index_upper<<" i:"<<i<<std::endl;
+    i = index_lower;
   }
 
   // Check Filter Block
@@ -457,22 +462,31 @@ uint64_t TableCache::LevelReadForCompaction(
   int c = comparator->Compare(left_at_start, k);
   stats.cdf_abs_error++;
     if (c > 0) {
+      std::cout<<"error correction needed"<<std::endl;
     if (left == 0) {
+      std::cout<<"one block ahead, should never happen"<<std::endl;
       flag = 1;
     
     } else {
       while (c > 0 && left>0) {
+        std::cout<<"error correction"<<std::endl;
+        
         left--;
-        c = comparator->Compare(left_at_start, k);
-        stats.cdf_abs_error++;
+        std::cout<<"error correction left: "<<left<<std::endl;
+        
         key_ptr1 = DecodeEntry(
             entries.data() + (left - pos_block_lower) * adgMod::entry_size,
             entries.data() + read_size, &shared1, &non_shared1, &value_length1);
         left_at_start = Slice(key_ptr1, non_shared1);
+        c = comparator->Compare(left_at_start, k);
+        stats.cdf_abs_error++;
+      }
+      if(c>0 && left==0){
+        flag = 1;
       }
     }
   }
-
+if(flag==0){
   while (left < right) {
     uint32_t mid = left + (right - left + 1) / 2;
     uint32_t shared, non_shared, value_length;
@@ -499,15 +513,16 @@ uint64_t TableCache::LevelReadForCompaction(
       right = mid - 1;
     }
   }
- 
+}
   uint64_t b_offset;
   if (block_offset > 0) {
-    b_offset = (block_offset / 4133) * 125;
+   // b_offset = (block_offset / 4133) * 125;
+   b_offset = block_offset/adgMod::entry_size;
   } else {
     b_offset = block_offset;
   }
   uint64_t limit = b_offset + left;
-
+  //std::cout<<"left : "<<left<<std::endl;
   if (block_offset > 0) {
     limit = limit - (block_offset / 4133);
   }
