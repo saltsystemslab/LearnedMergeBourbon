@@ -385,6 +385,10 @@ uint64_t TableCache::LevelReadForCompaction(
   size_t index_lower = lower / adgMod::block_num_entries;
   size_t index_upper = upper / adgMod::block_num_entries;
 
+
+size_t pos_block_lower = 0;
+size_t pos_block_upper = upper % adgMod::block_num_entries;
+
   // if the given interval overlaps two data block, consult the index block to
   // get the largest key in the first data block and compare it with the target
   // key to decide which data block the key is in
@@ -407,10 +411,13 @@ uint64_t TableCache::LevelReadForCompaction(
     // i = comp < 0 ? index_upper : index_lower;
     // std::cout<<"index_lower: "<<index_lower<<" index_upper "<<index_upper<<" i:"<<i<<std::endl;
     i = index_lower;
+    pos_block_upper = adgMod::block_num_entries - 1;
   }
+
 
   // Check Filter Block
   uint64_t block_offset = i * adgMod::block_size;
+  //uint64_t block_offset_1 = block_offset- 5*i;
 #ifdef INTERNAL_TIMER
   instance->StartTimer(15);
 #endif
@@ -430,10 +437,13 @@ uint64_t TableCache::LevelReadForCompaction(
 #endif
 
   // Get the interval within the data block that the target key may lie in
-  size_t pos_block_lower =
-      i == index_lower ? lower % adgMod::block_num_entries : 0;
-  size_t pos_block_upper = i == index_upper ? upper % adgMod::block_num_entries
-                                            : adgMod::block_num_entries - 1;
+  // size_t pos_block_lower =
+  //     i == index_lower ? lower % adgMod::block_num_entries : 0;
+  // size_t pos_block_upper = i == index_upper ? upper % adgMod::block_num_entries
+  //                                           : adgMod::block_num_entries - 1;
+
+  //size_t pos_block_lower = 0;
+ // size_t pos_block_upper = adgMod::block_num_entries - 1;
   // Read corresponding entries
   size_t read_size =
       (pos_block_upper - pos_block_lower + 1) * adgMod::entry_size;
@@ -457,14 +467,14 @@ uint64_t TableCache::LevelReadForCompaction(
       entries.data() + read_size, &shared1, &non_shared1, &value_length1);
   Slice left_at_start;
   left_at_start = Slice(key_ptr1, non_shared1);
-   //std::cout<<"size of left at start: "<<left_at_start.size()<<std::endl;
+  std::cout<<"left at start: "<<left<<std::endl;
+  std::cout<<"target key: "<<k.ToString()<<std::endl;
   int flag = 0;
   int c = comparator->Compare(left_at_start, k);
   stats.cdf_abs_error++;
     if (c > 0) {
       std::cout<<"error correction needed"<<std::endl;
     if (left == 0) {
-      std::cout<<"one block ahead, should never happen"<<std::endl;
       flag = 1;
     
     } else {
@@ -472,7 +482,6 @@ uint64_t TableCache::LevelReadForCompaction(
         std::cout<<"error correction"<<std::endl;
         
         left--;
-        std::cout<<"error correction left: "<<left<<std::endl;
         
         key_ptr1 = DecodeEntry(
             entries.data() + (left - pos_block_lower) * adgMod::entry_size,
@@ -490,11 +499,12 @@ if(flag==0){
   while (left < right) {
     uint32_t mid = left + (right - left + 1) / 2;
     uint32_t shared, non_shared, value_length;
-
+    std::cout<<"mid: "<<mid<<std::endl;
     const char* key_ptr = DecodeEntry(
         entries.data() + (mid - pos_block_lower) * adgMod::entry_size,
         entries.data() + read_size, &shared, &non_shared, &value_length);
     assert(key_ptr != nullptr && shared == 0 && "Entry Corruption");
+    
 #ifdef INTERNAL_TIMER
     if (first_search) {
       first_search = false;
@@ -504,28 +514,32 @@ if(flag==0){
 #endif
 
     Slice mid_key(key_ptr, non_shared);
-
+    std::cout<<"mid key "<<mid_key.ToString()<<std::endl;
     int comp = comparator->Compare(mid_key, k);
     stats.cdf_abs_error++;
     if (comp < 0) {
       left = mid;
+      std::cout<<"mid key assigned to left "<<mid_key.ToString()<<std::endl;
     } else {
       right = mid - 1;
     }
   }
 }
+std::cout<<"block_offset: "<<block_offset<<std::endl;
   uint64_t b_offset;
   if (block_offset > 0) {
-   // b_offset = (block_offset / 4133) * 125;
+    //b_offset = (block_offset / 4133) * 125;
    b_offset = block_offset/adgMod::entry_size;
   } else {
     b_offset = block_offset;
   }
-  uint64_t limit = b_offset + left;
-  //std::cout<<"left : "<<left<<std::endl;
-  if (block_offset > 0) {
-    limit = limit - (block_offset / 4133);
-  }
+  std::cout<<"b_offset: "<<b_offset<<std::endl;
+  std::cout<<"i * adgMod::block_num_entries: "<<i * adgMod::block_num_entries<<std::endl;
+  uint64_t limit = i * adgMod::block_num_entries + left;
+  std::cout<<"left at end: "<<left<<std::endl;
+  // if (block_offset > 0) {
+  //   limit = limit - (block_offset / 4133);
+  // }
   if (flag) {
     std::cout<<"limit"<<std::endl;
     limit = limit - 1;

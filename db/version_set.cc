@@ -726,7 +726,7 @@ int64_t Version::GetLimit(MergerStats& stats,const ReadOptions& options, int &fi
         // pass in possibly ready interval info (if level model is ready)
         // If level model is not ready, this function will detect and see if
         // file model is available param:learned means if level model is used
-        //std::cout<<"smallest iterator file where key is searched in: "<<f->number<<std::endl;
+        std::cout<<"smallest iterator file where key is searched in: "<<f->number<<std::endl;
         limit = vset_->table_cache_->GetForCompaction(stats, options, comparator, target_key, f->number, f->file_size, ikey, &saver, SaveValue, level, f,
             position_lower, position_upper, false, this, &model, &file_learned);
         
