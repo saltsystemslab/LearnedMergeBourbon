@@ -78,6 +78,7 @@ class LEVELDB_EXPORT Table {
 
         BlockHandle metaindex_handle;  // Handle to metaindex_block: saved from footer
         Block* index_block;
+        Block* first_key_in_block;
     };
 
   static Iterator* BlockReader(void*, const ReadOptions&, const Slice&);

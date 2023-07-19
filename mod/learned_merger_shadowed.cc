@@ -125,7 +125,7 @@ class LearnedMergingWithShadowIterator : public Iterator {
             std::cout<<"assertion failure:"<< mergingIterator_->key().ToString()<<" "<<learnedMergingIterator_->key().ToString()<<std::endl;
            }
     else {
-      std::cout<<"keys match"<<std::endl;
+      //std::cout<<"keys match"<<std::endl;
     }
     assert(comparator_->Compare(mergingIterator_->key(), learnedMergingIterator_->key()) ==
            0);

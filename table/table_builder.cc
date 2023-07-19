@@ -26,6 +26,7 @@ struct TableBuilder::Rep {
         offset(0),
         data_block(&options),
         index_block(&index_block_options),
+        first_key_in_block(&options),
         num_entries(0),
         closed(false),
         filter_block(opt.filter_policy == nullptr
@@ -42,6 +43,7 @@ struct TableBuilder::Rep {
   Status status;
   BlockBuilder data_block;
   BlockBuilder index_block;
+  BlockBuilder first_key_in_block;
   std::string last_key;
   int64_t num_entries;
   bool closed;  // Either Finish() or Abandon() has been called.
@@ -105,6 +107,7 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
     std::string handle_encoding;
     r->pending_handle.EncodeTo(&handle_encoding);
     r->index_block.Add(r->last_key, Slice(handle_encoding));
+    r->first_key_in_block.Add(key, Slice(handle_encoding));
     r->pending_index_entry = false;
   }
 
