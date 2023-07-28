@@ -191,6 +191,7 @@ Status TableCache::Get(const ReadOptions& options, uint64_t file_number,
 }
 
 int64_t TableCache::GetForCompaction(
+    size_t file_offset,
     MergerStats& stats, const ReadOptions& options, const Comparator* comparator, const Slice& target_key, uint64_t file_number,
     uint64_t file_size, const Slice& k, void* arg,
     void (*handle_result)(void*, const Slice&, const Slice&), int level,
@@ -208,7 +209,7 @@ int64_t TableCache::GetForCompaction(
     // if level model is used or file model is available, go Bourbon path
     if (learned || *file_learned) {
       //std::cout<<"model present"<<std::endl;
-      uint64_t limit = LevelReadForCompaction(stats, options,
+      int64_t limit = LevelReadForCompaction(file_offset, stats, options,
           comparator, target_key, file_number, file_size, k, arg, handle_result,
           level, meta, lower, upper, learned, version);
       return limit;
@@ -332,7 +333,8 @@ Cache::Handle* TableCache::FindFile(const ReadOptions& options, uint64_t file_nu
     return cache_handle;
 }
 
-uint64_t TableCache::LevelReadForCompaction(
+int64_t TableCache::LevelReadForCompaction(
+    size_t file_offset,
     MergerStats& stats, const ReadOptions& options, const Comparator* comparator, const Slice& target_key, uint64_t file_number,
     uint64_t file_size, const Slice& k, void* arg,
     void (*handle_result)(void*, const Slice&, const Slice&), int level,
@@ -367,6 +369,11 @@ uint64_t TableCache::LevelReadForCompaction(
     auto bounds = model->GetPosition(parsed_key.user_key);
     lower = bounds.first;
     upper = bounds.second;
+    int threshold = 10;
+    if(lower + file_offset < threshold){
+        //<<"threshold"<<std::endl;
+        return -1;
+    }
 #ifdef INTERNAL_TIMER
     instance->PauseTimer(2);
 #endif
@@ -465,7 +472,7 @@ uint64_t TableCache::LevelReadForCompaction(
     
     } else {
       while (c > 0 && left>0) {
-        std::cout<<"error correction"<<std::endl;
+        //std::cout<<"error correction"<<std::endl;
         
         left--;
         

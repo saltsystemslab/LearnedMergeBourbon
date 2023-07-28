@@ -12,18 +12,17 @@
 
 // #include "mod/config.h"
 #include "mod/plr.h"
- #include "mod/ycsb.cc"
+#include "mod/ycsb.cc"
 
 using namespace std;
 
-static const char* YCSB_RUN = "ycsb_run";
-static const char* YCSB_LOAD = "ycsb_load";
+static const char* YCSB = "ycsb";
 
 static const char* FLAGS_benchmark = "random";
 static const char* FLAGS_ycsb_workload_type = "";
 static const char* FLAGS_ycsb_key_type = "";
 static const char* FLAGS_ycsb_access_pattern = "";
-static int FLAGS_num_keys = 10000000;
+static int FLAGS_num_keys = 100000000;
 static int FLAGS_key_size_bytes = 10;
 static uint64_t FLAGS_universe_size = 10000000000;
 static bool FLAGS_check_values_in_db = true;
@@ -42,7 +41,7 @@ string generate_key(uint64_t key_value) {
 }
 
 void generate_random_keys(vector<std::string>& keys) {
-   //set<int64_t> s;
+  // set<int64_t> s;
   for (int i = 0; i < FLAGS_num_keys; i++) {
     int k = random() % FLAGS_universe_size;
     //  while (s.find(k) != s.end()) {
@@ -54,32 +53,29 @@ void generate_random_keys(vector<std::string>& keys) {
     keys.push_back(generate_key(k));
     // s.insert(k);
   }
-  std::cout << "done generating" << std::endl;
+  // std::cout << "done generating" << std::endl;
   return;
 }
 
-void generate_ycsb_keys(const char *ycsb_test_case, vector<std::string>&
-keys) {
-  const char *workload_type = FLAGS_ycsb_workload_type;
-  const char *key_type = FLAGS_ycsb_key_type;
-  const char *access_pattern = FLAGS_ycsb_access_pattern;
+void generate_ycsb_keys(vector<std::string>& load_keys,
+                        vector<std::string>& run_keys,
+                        vector<int>& run_phase_ops) {
+  const char* workload_type = FLAGS_ycsb_workload_type;
+  const char* key_type = FLAGS_ycsb_key_type;
+  const char* access_pattern = FLAGS_ycsb_access_pattern;
 
-  if (strcmp(ycsb_test_case, YCSB_LOAD) == 0) {
-    std::vector<uint64_t> ycsb_keys_load;
-    ycsb_keys_load = (ycsb_main(workload_type, key_type, access_pattern))[0];
-    for (auto key : ycsb_keys_load) {
-      keys.push_back(generate_key(key));
-    }
-    return;
+  std::vector<uint64_t> load_phase_keys;
+  std::vector<uint64_t> run_phase_keys;
+  load_phase_keys = (ycsb_main(workload_type, key_type, access_pattern,
+                               run_phase_keys, run_phase_ops))[0];
+
+  for (auto key : load_phase_keys) {
+    load_keys.push_back(generate_key(key));
   }
-  else if (strcmp(ycsb_test_case, YCSB_RUN) == 0) {
-    std::vector<uint64_t> ycsb_keys_run;
-    ycsb_keys_run = (ycsb_main(workload_type, key_type, access_pattern))[1];
-    for (auto key : ycsb_keys_run) {
-      keys.push_back(generate_key(key));
-    }
-    return;
+  for (auto key : run_phase_keys) {
+    run_keys.push_back(generate_key(key));
   }
+  return;
 }
 
 int main(int argc, char** argv) {
@@ -133,15 +129,14 @@ int main(int argc, char** argv) {
     }
   }
 
-  vector<std::string> keys;
+  vector<std::string> load_keys;
+  vector<std::string> run_keys;
+  vector<int> run_phase_ops;
   if (strcmp(FLAGS_benchmark, "random") == 0) {
-    generate_random_keys(keys);
-  } else if (strcmp(FLAGS_benchmark, YCSB_LOAD) == 0) {
-    //abort();
-     generate_ycsb_keys(YCSB_LOAD, keys);
-  } else if (strcmp(FLAGS_benchmark, YCSB_RUN) == 0) {
-    //abort();
-     generate_ycsb_keys(YCSB_RUN, keys);
+    generate_random_keys(load_keys);
+  } else if (strcmp(FLAGS_benchmark, YCSB) == 0) {
+    // abort();
+    generate_ycsb_keys(load_keys, run_keys, run_phase_ops);
   } else {
     std::cout << "Unrecognized benchmark!" << std::endl;
     return 1;
@@ -156,41 +151,57 @@ int main(int argc, char** argv) {
   // options.max_plr_error = FLAGS_plr_error;
   status = leveldb::DB::Open(options, DB_NAME, &db);
   assert(status.ok());
-
+  auto compactionStart = std::chrono::high_resolution_clock::now();
   int cnt = 0;
-  for (auto k : keys) {
-    db->Put(leveldb::WriteOptions(), k, k);
-    cnt++;
-    if (cnt % 100000 == 0) {
-      // std::cout << "put: " << cnt << std::endl;
+  if (strcmp(FLAGS_benchmark, YCSB) == 0) {
+    // load phase
+    for (auto k : load_keys) {
+      db->Put(leveldb::WriteOptions(), k, k);
     }
-  }
-  auto lookup_start = std::chrono::high_resolution_clock::now();
-  if (FLAGS_check_values_in_db) {
-    int c = 0;
-    for (auto k : keys) {
-      std::string value;
-      status = db->Get(leveldb::ReadOptions(), k, &value);
-      c++;
-      // if (value == k) {
-      //   std::cout << "count: " << c << "value: " << value << "key: " << k
-      //             << std::endl;
-      // }
-      if (value != k) {
-        std::cout << "failed" << std::endl;
-        std::cout << "count: " << c << "value: " << value << "key: " << k
-                  << std::endl;
+    // run phase
+    
+    uint64_t lookup_duration_ns;
+    for (int i = 0; i < run_phase_ops.size(); i++) {
+      if (run_phase_ops[i] == 0 || run_phase_ops[i] == 1) {
+        db->Put(leveldb::WriteOptions(), run_keys[i], run_keys[i]);
+      } else if (run_phase_ops[i] == 2) {
+        std::string value;
+        auto lookup_start = std::chrono::high_resolution_clock::now();
+        db->Get(leveldb::ReadOptions(), run_keys[i], &value);
+        auto lookup_end = std::chrono::high_resolution_clock::now();
+        lookup_duration_ns +=
+            std::chrono::duration_cast<std::chrono::nanoseconds>(lookup_end -
+                                                                 lookup_start)
+                .count();
+      } else {
+        std::cout << "key operation is not valid" << std::endl;
       }
-      assert(status.ok() && value == k);
+    }
+    float lookup_duration_sec = lookup_duration_ns / 1e9;
+    std::cout << "Lookup duration:" << lookup_duration_sec << std::endl;
+  } else {
+    // random
+    for (auto k : load_keys) {
+      db->Put(leveldb::WriteOptions(), k, k);
     }
   }
-  auto lookup_end = std::chrono::high_resolution_clock::now();
-  uint64_t lookup_duration_ns =
-      std::chrono::duration_cast<std::chrono::nanoseconds>(lookup_end -
-                                                           lookup_start)
+  auto compactionEnd = std::chrono::high_resolution_clock::now();
+  uint64_t compaction_duration_ns =
+      std::chrono::duration_cast<std::chrono::nanoseconds>(compactionEnd -
+                                                           compactionStart)
           .count();
-  float lookup_duration_sec = lookup_duration_ns / 1e9;
-  std::cout << "Lookup duration:" << lookup_duration_sec << std::endl;
+  float compaction_duration_sec = compaction_duration_ns / 1e9;
+  std::cout << "Compaction duration:" << compaction_duration_sec << std::endl;
+  if (FLAGS_check_values_in_db) {
+    for (int i = 0; i < 5; i++) {
+      for (auto k : load_keys) {
+        std::string value;
+        status = db->Get(leveldb::ReadOptions(), k, &value);
+        assert(status.ok() && value == k);
+      }
+    }
+  }
+
   std::cout << "DB Stats" << std::endl;
   std::string db_stats;
   std::cout << db->GetProperty("leveldb.stats", &db_stats);

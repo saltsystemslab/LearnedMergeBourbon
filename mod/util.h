@@ -36,6 +36,7 @@ namespace adgMod {
     // MOD=7 means Bourbon (Learned Index + WiscKey)
     // MOD=8 means WiscKey (simple port)
     extern int MOD;
+    extern int learned_merger;
     // used in early testing
     extern bool string_mode;
     extern uint64_t key_multiple;

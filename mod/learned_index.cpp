@@ -62,7 +62,6 @@ double LearnedIndexData::GetError() const { return error; }
 bool LearnedIndexData::Learn() {
   // FILL IN GAMMA (error)
   PLR plr = PLR(error);
-
   // check if data if filled
   if (string_keys.empty()) assert(false);
 

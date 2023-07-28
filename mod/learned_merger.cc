@@ -236,7 +236,7 @@ if(smallest_ == smallest){
   Version* v = adgMod::db->versions_->current();
 
   int file_count = 0;
-  auto file_limit = v->GetLimit(stats_, options_,
+  auto file_limit = v->GetLimit(keys_consumed_[smallest_iterator_index_], stats_, options_,
       file_count, comparator_, second_smallest_->key(), lkey, &value,
       levels_[smallest_iterator_index_], allFiles_[smallest_iterator_index_]);
   //std::cout<<"file_limit: "<<file_limit<<std::endl;

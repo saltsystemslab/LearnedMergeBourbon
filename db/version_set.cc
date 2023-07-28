@@ -552,7 +552,7 @@ namespace leveldb {
         return Status::NotFound(Slice());  // Use an empty error message for speed
     }
 
-int64_t Version::GetLimit(MergerStats& stats,const ReadOptions& options, int &file_count, const Comparator* comparator, const Slice &target_key, const LookupKey& k,
+int64_t Version::GetLimit(uint64_t keysConsumed, MergerStats& stats,const ReadOptions& options, int &file_count, const Comparator* comparator, const Slice &target_key, const LookupKey& k,
                     std::string* value, int level, std::vector<FileMetaData*> allFiles) {
  // adgMod::Stats* instance = adgMod::Stats::GetInstance();
   Slice ikey = k.internal_key();
@@ -727,7 +727,18 @@ int64_t Version::GetLimit(MergerStats& stats,const ReadOptions& options, int &fi
         // If level model is not ready, this function will detect and see if
         // file model is available param:learned means if level model is used
        // std::cout<<"smallest iterator file where key is searched in: "<<f->number<<std::endl;
-        limit = vset_->table_cache_->GetForCompaction(stats, options, comparator, target_key, f->number, f->file_size, ikey, &saver, SaveValue, level, f,
+        int file_count = 0;
+        size_t file_offset = 0;
+        if (level != 0) {
+            for (int file_index = 0; file_index < file_count; file_index++) {
+            auto file = allFiles[file_index];
+                file_offset = file_offset + file->num_keys;
+            }
+        }
+        if(file_count > 0){
+        file_offset = file_offset - keysConsumed;
+        }
+        limit = vset_->table_cache_->GetForCompaction(file_offset, stats, options, comparator, target_key, f->number, f->file_size, ikey, &saver, SaveValue, level, f,
             position_lower, position_upper, false, this, &model, &file_learned);
         
         if(limit > f->num_keys){
@@ -1643,7 +1654,7 @@ int64_t Version::GetLimit(MergerStats& stats,const ReadOptions& options, int &fi
   int shadow_num = 0;
   Iterator** shadow_list = new Iterator*[space];
 
-  if (adgMod::MOD == 9) {
+  if (adgMod::MOD == 9 && adgMod::learned_merger == 1) {
     for (int which = 0; which < 2; which++) {
       if (!c->inputs_[which].empty()) {
         if (c->level() + which == 0) {
@@ -1701,9 +1712,11 @@ int64_t Version::GetLimit(MergerStats& stats,const ReadOptions& options, int &fi
   }
   assert(num <= space);
   Iterator* result;
-  if (adgMod::MOD == 9) {
-     result = NewShadowedLearnedMergingIterator(&icmp_, list, shadow_list,
-                                               allFiles, num, levels, options);
+  if (adgMod::MOD == 9 && adgMod::learned_merger == 1) {
+    //result = NewMergingIterator(&icmp_, list, num);
+   result = NewLearnedMergingIterator(&icmp_, list, allFiles, num, levels, options);
+    //  result = NewShadowedLearnedMergingIterator(&icmp_, list, shadow_list,
+    //                                            allFiles, num, levels, options);
   } else {
     result = NewMergingIterator(&icmp_, list, num);
   }
