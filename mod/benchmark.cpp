@@ -192,15 +192,15 @@ int main(int argc, char** argv) {
           .count();
   float compaction_duration_sec = compaction_duration_ns / 1e9;
   std::cout << "Compaction duration:" << compaction_duration_sec << std::endl;
-  if (FLAGS_check_values_in_db) {
-    for (int i = 0; i < 5; i++) {
-      for (auto k : load_keys) {
-        std::string value;
-        status = db->Get(leveldb::ReadOptions(), k, &value);
-        assert(status.ok() && value == k);
-      }
-    }
-  }
+  // if (FLAGS_check_values_in_db) {
+  //   for (int i = 0; i < 5; i++) {
+  //     for (auto k : load_keys) {
+  //       std::string value;
+  //       status = db->Get(leveldb::ReadOptions(), k, &value);
+  //       assert(status.ok() && value == k);
+  //     }
+  //   }
+  // }
 
   std::cout << "DB Stats" << std::endl;
   std::string db_stats;

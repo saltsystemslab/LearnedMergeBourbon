@@ -108,25 +108,25 @@ class LearnedMergingWithShadowIterator : public Iterator {
   }
 
   Slice key() const override {
-    if(comparator_->Compare(mergingIterator_->key(), learnedMergingIterator_->key()) !=
-           0) {
-            std::cout<<"assertion"<<std::endl;
-            int cmp = comparator_->Compare(mergingIterator_->key(), learnedMergingIterator_->key()) ;
-           // int cmp = mergingIterator_->key().compare(learnedMergingIterator_->key());
-            std::cout<<"cmp: "<< cmp<<std::endl;
-            std::string s1 = mergingIterator_->key().ToString();
-            std::string s2 = learnedMergingIterator_->key().ToString();
-            std::cout<< s1.substr(0,10) << " " << s2.substr(0,10) << std::endl;
-            int c1 = (int)s1[10]; int c2 = (int)s1[11];
-            std::cout<<c1<<" "<<c2<<std::endl;
-            c1 = (int)s2[10]; c2 = (int)s2[11];
-            std::cout<<c1<<" "<<c2<<std::endl;
+    // if(comparator_->Compare(mergingIterator_->key(), learnedMergingIterator_->key()) !=
+    //        0) {
+    //         std::cout<<"assertion"<<std::endl;
+    //         int cmp = comparator_->Compare(mergingIterator_->key(), learnedMergingIterator_->key()) ;
+    //        // int cmp = mergingIterator_->key().compare(learnedMergingIterator_->key());
+    //         std::cout<<"cmp: "<< cmp<<std::endl;
+    //         std::string s1 = mergingIterator_->key().ToString();
+    //         std::string s2 = learnedMergingIterator_->key().ToString();
+    //         std::cout<< s1.substr(0,10) << " " << s2.substr(0,10) << std::endl;
+    //         int c1 = (int)s1[10]; int c2 = (int)s1[11];
+    //         std::cout<<c1<<" "<<c2<<std::endl;
+    //         c1 = (int)s2[10]; c2 = (int)s2[11];
+    //         std::cout<<c1<<" "<<c2<<std::endl;
             
-            std::cout<<"assertion failure:"<< mergingIterator_->key().ToString()<<" "<<learnedMergingIterator_->key().ToString()<<std::endl;
-           }
-    else {
-      //std::cout<<"keys match"<<std::endl;
-    }
+    //         std::cout<<"assertion failure:"<< mergingIterator_->key().ToString()<<" "<<learnedMergingIterator_->key().ToString()<<std::endl;
+    //        }
+    // else {
+    //   //std::cout<<"keys match"<<std::endl;
+    // }
     assert(comparator_->Compare(mergingIterator_->key(), learnedMergingIterator_->key()) ==
            0);
     //std::cout<<"key: "<<mergingIterator_->key().ToString()<<std::endl;

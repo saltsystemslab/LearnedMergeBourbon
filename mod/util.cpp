@@ -11,7 +11,7 @@ using std::to_string;
 
 namespace adgMod {
 
-    int MOD = 9;
+    int MOD = 8;
     int learned_merger = 0;
     bool string_mode = true;
     uint64_t key_multiple = 1;

@@ -88,8 +88,8 @@ namespace Dummy {
 }
 
 
-static uint64_t LOAD_SIZE = 30000000;
-static uint64_t RUN_SIZE = 64000000;
+static uint64_t LOAD_SIZE = 200000000;
+static uint64_t RUN_SIZE = 200000000;
 
 void loadKey(TID tid, Key &key) {
     return ;
@@ -337,8 +337,10 @@ std::vector<std::vector<uint64_t>> ycsb_main
     
     const char* workload_type,
     const char* key_type,
-    const char* access_pattern) {
-        //std::vector<uint64_t> ycsb_keys;
+    const char* access_pattern,
+    std::vector<uint64_t>& run_phase_keys,
+    std::vector<int>& run_phase_ops) {
+    
 //     if (argc != 6) {
 //         std::cout << "Usage: ./ycsb [index type] [ycsb workload type] [key distribution] [access pattern] [number of threads]\n";
 //         std::cout << "1. index type: art hot bwtree masstree clht\n";
@@ -445,11 +447,14 @@ std::vector<std::vector<uint64_t>> ycsb_main
         memset(&ops[0], 0x00, RUN_SIZE * sizeof(int));
 
         ycsb_load_run_randint(wl, kt, ap, init_keys, keys,ranges_end, ranges, ops);
-        std::vector<std::vector<uint64_t>> load_run_keys;
-        load_run_keys.push_back(init_keys);
-        load_run_keys.push_back(keys);
+        std::vector<std::vector<uint64_t>> load_phase_keys;
+       
+        load_phase_keys.push_back(init_keys);
+        run_phase_ops = ops;
+        run_phase_keys = keys;
+        // load_run_keys.push_back(keys);
         cout<<"hey"<<endl;
-        return load_run_keys;
+        return load_phase_keys;
         // cout << "-----"  << endl;
         // cout << keys[0] << endl;
         // cout << "-----"  << endl;
